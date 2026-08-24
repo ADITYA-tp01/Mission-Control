@@ -3,6 +3,8 @@
 
 [config]
 response_language = "en"
+model = "openai/meta/llama-3.1-8b-instruct"
+fallback_model = "openai/meta/llama-3.1-8b-instruct"
 
 [pr_reviewer]
 num_max_findings = 6
