@@ -1,0 +1,48 @@
+# ===== Secrets / environment =====
+.env
+.env.local
+.env.*.local
+*.pem
+
+# ===== Personal strategy / ops notes (not part of the project) =====
+Your Tasks/
+QODO/
+BRIEF.md
+task-*.log
+
+# ===== Node / Next.js =====
+node_modules/
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.vercel
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.venv/
+venv/
+
+# ===== IDE / OS =====
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ===== Misc =====
+coverage/
+.nyc_output/
+docker-compose.override.yml
