@@ -1,0 +1,33 @@
+# Qodo PR-Agent configuration for MissionControl
+# Docs: https://qodo-ai.github.io/pr-agent/
+
+[config]
+response_language = "en"
+
+[pr_reviewer]
+num_max_findings = 6
+require_score_review = true
+require_tests_review = true
+require_security_review = true
+extra_instructions = """\
+Project context: MissionControl is a DevOps incident-response agent built on the TrueForge harness. \
+A simulated-infrastructure MCP server exposes chaos injection plus approval-gated rollback/restart tools; \
+a Next.js dashboard visualizes live state and triggers the agent via webhook. \
+Review priorities, in order: \
+(1) Safety/approval logic - no destructive action (rollback_deploy, restart_service) may execute without explicit human approval; \
+(2) Secrets handling - no credentials in code, config, or logs; \
+(3) Error handling and input validation at trust boundaries (API routes, MCP tool args, query params); \
+(4) Test coverage of state transitions. \
+This is a demo harness, not a production service: label production-only concerns (auth, multi-tenancy, rate limiting) as deferred rather than blocking.\
+"""
+
+[pr_description]
+publish_description = true
+generate_ai_title = false
+
+[pr_code_suggestions]
+num_code_suggestions = 4
+commitSuggestions = true
+
+[pr_questions]
+enable_pr_questions = false
