@@ -63,12 +63,16 @@ Generate a summary including:
 - `get_error_metrics(service)` - Detailed metrics for one service
 - `get_recent_deploys(limit)` - Recent deployment history
 - `get_service_logs(service, limit, level)` - Service logs
-- `inject_chaos(service, chaos_type)` - For demo purposes only
 - `get_incident_timeline()` - Current incident events
 
 ### Write Tools (Require Approval)
 - `rollback_deploy(service, deploy_id)` - Rollback to previous version
 - `restart_service(service)` - Restart the service
+
+### Demo-Only Tools (NEVER call these as the agent)
+- `inject_chaos(service, chaos_type)` - Injects failures into the simulated infrastructure.
+  This is exclusively a **human demo control** (dashboard / CLI). The agent must never call it:
+  chaos exists to *create* the incidents you respond to — causing incidents is never your job.
 
 ---
 
