@@ -292,6 +292,22 @@ class InfraState:
 
     def inject_chaos(self, service: str, chaos_type: str = "error_spike") -> Dict:
         with self.lock:
+            # If chaos is already active, restore the previous origin
+            # before applying the new event so it isn't orphaned.
+            if self.chaos_active and self.chaos_service:
+                for name in self.chaos_affected or [self.chaos_service]:
+                    svc = self.services.get(name)
+                    if svc:
+                        svc.error_rate = BASELINE_ERROR_RATE
+                        svc.latency_p99 = BASELINE_LATENCY
+                        svc.status = "healthy"
+                self.add_log(LogEntry(
+                    timestamp=_now(),
+                    service=self.chaos_service,
+                    level="INFO",
+                    message="Prior chaos cleared before new injection",
+                ))
+
             profile = CHAOS_PROFILES.get(chaos_type)
             svc = self.services.get(service)
             if not profile or not svc:
