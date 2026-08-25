@@ -12,6 +12,7 @@ from mcp.server.fastmcp import FastMCP
 
 from state import get_state
 from http_api import serve_forever as serve_rest_api
+from http_api import HOST as REST_HOST
 
 
 MCP_HOST = "0.0.0.0"
@@ -25,7 +26,9 @@ mcp = FastMCP(
         "Tools for investigating and remediating incidents on a simulated "
         "production system (api-gateway, payment-service, user-service, "
         "notification-service). Read tools need no approval; rollback_deploy "
-        "and restart_service are irreversible and require human approval."
+        "and restart_service are irreversible and require human approval. "
+        "Chaos injection is intentionally NOT exposed here - incidents are "
+        "created by humans via the dashboard."
     ),
 )
 
@@ -104,21 +107,6 @@ def get_service_logs(service: str, limit: int = 50, level: str = "") -> str:
 
 
 @mcp.tool()
-def inject_chaos(service: str, chaos_type: str = "error_spike") -> str:
-    """Inject a failure scenario into a service. Fires an alert and adds
-    incident timeline events.
-
-    Args:
-        service: Name of the service to affect
-        chaos_type: One of "error_spike", "latency_spike", "outage",
-                    "cascading_failure"
-    """
-    state = get_state()
-    result = state.inject_chaos(service, chaos_type)
-    return json.dumps(result, indent=2)
-
-
-@mcp.tool()
 def get_incident_timeline() -> str:
     """Get the current incident timeline."""
     state = get_state()
@@ -187,5 +175,5 @@ def _start_background_services() -> None:
 if __name__ == "__main__":
     _start_background_services()
     print(f"demo-infra MCP server (streamable-http) on http://{MCP_HOST}:{MCP_PORT}/mcp")
-    print(f"demo-infra REST API on http://{MCP_HOST}:8001")
+    print(f"demo-infra REST API on http://{REST_HOST}:8001")
     mcp.run(transport="streamable-http")

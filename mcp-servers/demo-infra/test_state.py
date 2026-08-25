@@ -69,6 +69,16 @@ def test_rollback_validation():
     assert s.rollback_deploy("payment-service", "deploy-999")["status"] == "error"
 
 
+def test_rollback_rejects_foreign_deploy():
+    s = make_state()
+    # deploy-003 belongs to payment-service; rolling back api-gateway with it must fail
+    result = s.rollback_deploy("api-gateway", "deploy-003")
+    assert result["status"] == "error"
+    assert "belongs to" in result["message"]
+    # and it must not have mutated anything
+    assert s.get_service("api-gateway").version == "v2.1.0"
+
+
 def test_acknowledge_alert():
     s = make_state()
     s.inject_chaos("user-service", "latency_spike")
@@ -87,11 +97,49 @@ def test_reset_demo():
     assert all(h["status"] == "healthy" for h in s.get_service_health())
 
 
+def test_reset_restores_versions_and_logs():
+    s = make_state()
+    s.inject_chaos("payment-service", "error_spike")
+    s.rollback_deploy("payment-service", "deploy-003")
+    assert s.get_service("payment-service").version == "v1.8.2"  # rolled back
+    assert s.reset_demo()["status"] == "success"
+    # version restored to the seeded baseline
+    assert s.get_service("payment-service").version == "v1.8.3"
+    # incident log artifacts are gone after reset
+    error_logs = [l for l in s.get_service_logs("payment-service", limit=500, level="ERROR")]
+    assert error_logs == []
+
+
+def test_cascade_recovery_restores_all_affected():
+    s = make_state()
+    result = s.inject_chaos("api-gateway", "cascading_failure")
+    affected = set(result["affected_services"])
+    assert s.restart_service("api-gateway")["status"] == "success"
+    statuses = {h["name"]: h for h in s.get_service_health()}
+    for name in affected:
+        assert statuses[name]["status"] == "healthy", f"{name} left degraded after root restart"
+        assert abs(statuses[name]["error_rate"] - BASELINE_ERROR_RATE) < 0.01
+    assert s.chaos_active is False
+
+
 def test_metric_sampler_appends():
     s = make_state()
     before = len(s.get_metrics_history("api-gateway"))
     s.record_metric_sample()
     assert len(s.get_metrics_history("api-gateway")) == before + 1
+
+
+def test_limit_param_validator():
+    from http_api import BadRequest, _int_param
+
+    assert _int_param({"limit": "25"}, "limit", 60, 500) == 25
+    assert _int_param({}, "limit", 60, 500) == 60
+    for bad in ("abc", "0", "-5", "9999"):
+        try:
+            _int_param({"limit": bad}, "limit", 60, 500)
+            raise AssertionError(f"expected BadRequest for {bad}")
+        except BadRequest:
+            pass
 
 
 if __name__ == "__main__":

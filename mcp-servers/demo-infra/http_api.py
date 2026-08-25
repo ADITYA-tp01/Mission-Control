@@ -8,6 +8,7 @@ Run: python http_api.py  (started automatically by server.py)
 """
 
 import json
+import os
 import re
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Tuple
@@ -15,11 +16,37 @@ from urllib.parse import urlparse, parse_qs
 
 from state import get_state
 
-HOST = "0.0.0.0"
+# Loopback by default; must be 0.0.0.0 when running inside Docker
+# so the published port is reachable from the host.
+HOST = os.environ.get("DEMO_INFRA_HOST", "127.0.0.1")
 PORT = 8001
 
 SERVICE_RE = re.compile(r"^/api/services/([^/]+)/metrics$")
 ALERT_ACK_RE = re.compile(r"^/api/alerts/([^/]+)/ack$")
+
+# Browser traffic reaches this API only via the Next.js server-side proxy,
+# so CORS is a convenience for local debugging, not an authorization layer.
+CORS_ALLOWED_ORIGINS = {
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+}
+
+
+class BadRequest(Exception):
+    """Raised for malformed request parameters; mapped to HTTP 400."""
+
+
+def _int_param(query: dict, key: str, default: int, maximum: int) -> int:
+    raw = query.get(key, default)
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        raise BadRequest(f"'{key}' must be an integer, got: {raw!r}")
+    if value < 1 or value > maximum:
+        raise BadRequest(f"'{key}' must be between 1 and {maximum}, got: {value}")
+    return value
 
 
 def _body(handler: BaseHTTPRequestHandler) -> dict:
@@ -43,10 +70,13 @@ class DemoInfraAPIHandler(BaseHTTPRequestHandler):
 
     def _send(self, status: int, payload: Any) -> None:
         code, body = _json(payload, status)
+        origin = self.headers.get("Origin", "")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Access-Control-Allow-Origin", "*")
+        if origin in CORS_ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
@@ -63,6 +93,12 @@ class DemoInfraAPIHandler(BaseHTTPRequestHandler):
         self._send(204, {})
 
     def do_GET(self) -> None:  # noqa: N802
+        try:
+            self._handle_get()
+        except BadRequest as exc:
+            self._send(400, {"error": str(exc)})
+
+    def _handle_get(self) -> None:
         parsed = urlparse(self.path)
         path = parsed.path.rstrip("/") or "/"
         query = {k: v[0] for k, v in parse_qs(parsed.query).items()}
@@ -84,7 +120,9 @@ class DemoInfraAPIHandler(BaseHTTPRequestHandler):
         if match:
             service = match.group(1)
             metrics = state.get_error_metrics(service)
-            history = state.get_metrics_history(service, limit=int(query.get("limit", 60)))
+            history = state.get_metrics_history(
+                service, limit=_int_param(query, "limit", 60, 500)
+            )
             self._send(200, {
                 "current": metrics,
                 "history": [
@@ -105,7 +143,7 @@ class DemoInfraAPIHandler(BaseHTTPRequestHandler):
                     "id": d.id, "service": d.service, "version": d.version,
                     "timestamp": d.timestamp, "changes": d.changes, "author": d.author,
                 }
-                for d in state.get_recent_deploys(limit=int(query.get("limit", 10)))
+                for d in state.get_recent_deploys(limit=_int_param(query, "limit", 10, 100))
             ]})
             return
 
@@ -113,7 +151,7 @@ class DemoInfraAPIHandler(BaseHTTPRequestHandler):
             service = query.get("service", "")
             logs = state.get_service_logs(
                 service,
-                limit=int(query.get("limit", 50)),
+                limit=_int_param(query, "limit", 50, 500),
                 level=query.get("level") or None,
             )
             self._send(200, {"logs": [
@@ -157,6 +195,10 @@ class DemoInfraAPIHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/remediate":
+            # Intentional human bypass for demo scope: the dashboard's
+            # hold-to-confirm control plays the "human operator" role here.
+            # Approval semantics are enforced on the agent path (TrueForge
+            # approval gates on the MCP tools), not on this endpoint.
             action = body.get("action")
             service = body.get("service", "")
             if action == "rollback":

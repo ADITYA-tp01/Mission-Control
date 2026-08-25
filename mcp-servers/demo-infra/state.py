@@ -124,7 +124,11 @@ class InfraState:
         self.chaos_active: bool = False
         self.chaos_service: Optional[str] = None
         self.chaos_type: Optional[str] = None
+        self.chaos_affected: List[str] = []  # all services degraded by the active chaos event
         self._alert_counter = 0
+        self._initial_versions: Dict[str, str] = {
+            name: svc.version for name, svc in self.services.items()
+        }
 
         self._generate_initial_logs()
         for name in self.services:
@@ -318,6 +322,7 @@ class InfraState:
             self.chaos_active = True
             self.chaos_service = service
             self.chaos_type = chaos_type
+            self.chaos_affected = list(affected)
 
             severity = "critical" if profile["status"] == "down" else "warning"
             alert = self.add_alert(
@@ -343,6 +348,33 @@ class InfraState:
             },
         }
 
+    def _clear_chaos_and_recover_dependents(self, root: str) -> List[str]:
+        """End the active chaos event, restoring every service the event
+        degraded (cascades hit dependencies; they must recover too).
+        Must be called with the lock held and only when `root` is the
+        chaos origin. Returns the list of restored services."""
+        restored = []
+        for name in self.chaos_affected or [root]:
+            svc = self.services.get(name)
+            if not svc:
+                continue
+            svc.error_rate = BASELINE_ERROR_RATE
+            svc.latency_p99 = BASELINE_LATENCY
+            svc.status = "healthy"
+            if name != root:
+                for _ in range(5):
+                    self.add_log(LogEntry(
+                        timestamp=_now(), service=name, level="INFO",
+                        message="Recovery: upstream service restored, traffic resuming",
+                    ))
+                self.add_alert(name, "info", f"{name}: recovered after {root} remediation")
+                restored.append(name)
+        self.chaos_active = False
+        self.chaos_service = None
+        self.chaos_type = None
+        self.chaos_affected = []
+        return restored
+
     def rollback_deploy(self, service: str, deploy_id: str) -> Dict:
         with self.lock:
             svc = self.services.get(service)
@@ -352,6 +384,13 @@ class InfraState:
             deploy_idx = next((i for i, d in enumerate(self.deploys) if d.id == deploy_id), None)
             if deploy_idx is None:
                 return {"status": "error", "message": f"Unknown deploy_id: {deploy_id}"}
+
+            target = self.deploys[deploy_idx]
+            if target.service != service:
+                return {
+                    "status": "error",
+                    "message": f"Deploy {deploy_id} belongs to {target.service}, not {service}",
+                }
 
             previous = next(
                 (d for d in reversed(self.deploys[:deploy_idx]) if d.service == service), None
@@ -368,9 +407,7 @@ class InfraState:
 
             was_chaos = self.chaos_active
             if self.chaos_service == service:
-                self.chaos_active = False
-                self.chaos_service = None
-                self.chaos_type = None
+                self._clear_chaos_and_recover_dependents(service)
 
             for _ in range(10):
                 self.add_log(LogEntry(
@@ -396,9 +433,7 @@ class InfraState:
             svc.status = "healthy"
 
             if self.chaos_service == service:
-                self.chaos_active = False
-                self.chaos_service = None
-                self.chaos_type = None
+                self._clear_chaos_and_recover_dependents(service)
 
             for _ in range(10):
                 self.add_log(LogEntry(
@@ -415,16 +450,22 @@ class InfraState:
     def reset_demo(self) -> Dict:
         with self.lock:
             for svc in self.services.values():
+                svc.version = self._initial_versions[svc.name]
                 svc.error_rate = BASELINE_ERROR_RATE
                 svc.latency_p99 = BASELINE_LATENCY
                 svc.status = "healthy"
             self.chaos_active = False
             self.chaos_service = None
             self.chaos_type = None
+            self.chaos_affected = []
             self.alerts = []
             self.incident_timeline = []
             self.agent_sessions = {}
             self._alert_counter = 0
+            # Regenerate the baseline log buffer so incident artifacts
+            # (chaos ERROR spam, recovery INFO lines) don't leak across demos.
+            self.logs = []
+            self._generate_initial_logs()
             for name in self.services:
                 self.metrics_history[name] = [
                     MetricPoint(_now(), BASELINE_ERROR_RATE, BASELINE_LATENCY, "healthy")
