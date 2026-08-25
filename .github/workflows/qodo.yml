@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Qodo PR Agent review
         id: pragent
-        uses: qodo-ai/pr-agent@main
+        uses: qodo-ai/pr-agent@f76c74cb8edd5ab8a46031aced2f30c5060756c1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_KEY: ${{ secrets.NIM_KEY }}
+          OPENAI_API_BASE: https://integrate.api.nvidia.com/v1
