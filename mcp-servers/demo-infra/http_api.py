@@ -7,6 +7,7 @@ this module serves those on port 8001 without adding any dependencies.
 Run: python http_api.py  (started automatically by server.py)
 """
 
+import hmac
 import json
 import os
 import re
@@ -20,6 +21,18 @@ from state import get_state
 # so the published port is reachable from the host.
 HOST = os.environ.get("DEMO_INFRA_HOST", "127.0.0.1")
 PORT = 8001
+
+# State-mutating POST endpoints require the shared token below. The default
+# matches the dashboard and scripts so the local demo works out of the box;
+# set DEMO_INFRA_TOKEN explicitly (compose/env) to secure a shared deployment.
+DEFAULT_TOKEN = "local-demo-token"
+
+
+def _authorized(headers: Any, client_addr: str) -> bool:
+    """True when the request carries the shared mutation token."""
+    expected = os.environ.get("DEMO_INFRA_TOKEN") or DEFAULT_TOKEN
+    supplied = headers.get("Authorization", "")
+    return hmac.compare_digest(supplied, f"Bearer {expected}")
 
 SERVICE_RE = re.compile(r"^/api/services/([^/]+)/metrics$")
 ALERT_ACK_RE = re.compile(r"^/api/alerts/([^/]+)/ack$")
@@ -186,6 +199,11 @@ class DemoInfraAPIHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path.rstrip("/")
         body = _body(self)
         state = get_state()
+
+        if not _authorized(self.headers, self.client_address[0] if self.client_address else ""):
+            self._send(401, {"status": "error",
+                             "message": "unauthorized: send 'Authorization: Bearer <DEMO_INFRA_TOKEN>'"})
+            return
 
         if path == "/api/chaos":
             result = state.inject_chaos(

@@ -1,5 +1,6 @@
 const BASE_URL =
   process.env.DEMO_INFRA_API_URL || 'http://localhost:8001'
+const DEMO_INFRA_TOKEN = process.env.DEMO_INFRA_TOKEN || 'local-demo-token'
 
 export interface ServiceHealth {
   name: string
@@ -54,7 +55,11 @@ export interface InfraSnapshot {
 async function infraFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
+    headers: {
+      Authorization: `Bearer ${DEMO_INFRA_TOKEN}`,
+      'Content-Type': 'application/json',
+      ...(init?.headers || {}),
+    },
     cache: 'no-store',
   })
   if (!res.ok) {

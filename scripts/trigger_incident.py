@@ -11,11 +11,13 @@ Usage:
 """
 
 import json
+import os
 import sys
 import urllib.request
 
 DASHBOARD_URL = "http://localhost:3001"
 DEMO_INFRA_URL = "http://localhost:8001"
+DEMO_INFRA_TOKEN = os.environ.get("DEMO_INFRA_TOKEN", "local-demo-token")
 
 SERVICES = ["api-gateway", "payment-service", "user-service", "notification-service"]
 CHAOS_TYPES = ["error_spike", "latency_spike", "outage", "cascading_failure"]
@@ -25,7 +27,10 @@ def _post(url: str, payload: dict, timeout: int = 15) -> dict:
     req = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {DEMO_INFRA_TOKEN}",
+        },
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
