@@ -5,6 +5,7 @@ Run:  python -m pytest mcp-servers/demo-infra/test_state.py
 """
 
 from state import InfraState, BASELINE_ERROR_RATE
+from http_api import _authorized
 
 
 def make_state() -> InfraState:
@@ -167,6 +168,12 @@ def test_limit_param_validator():
             raise AssertionError(f"expected BadRequest for {bad}")
         except BadRequest:
             pass
+
+
+def test_http_mutations_require_token():
+    assert _authorized({"Authorization": "Bearer local-demo-token"}, "10.0.0.1") is True
+    assert _authorized({}, "10.0.0.1") is False
+    assert _authorized({"Authorization": "Bearer wrong"}, "10.0.0.1") is False
 
 
 if __name__ == "__main__":
