@@ -44,6 +44,11 @@ if (-not (Test-Path ".env")) {
 Write-Host ""
 
 Write-Host "[3/6] Building and starting demo infrastructure + MCP server..."
+# Fail fast with a clear message if the demo-infra sources are not committed.
+if (-not (Test-Path "mcp-servers\demo-infra\Dockerfile")) {
+    Write-Error "mcp-servers\demo-infra\Dockerfile is missing - demo-infra sources not committed."
+    exit 1
+}
 # Build compose command arguments safely (avoids 1..0 slice bug on single-element array)
 $composeCmd = @()
 if ($compose.Length -eq 1) {
@@ -62,6 +67,11 @@ try {
 Write-Host ""
 
 Write-Host "[4/6] Installing dashboard dependencies..."
+# Fail fast with a clear message if the dashboard sources are not committed.
+if (-not (Test-Path "apps\dashboard\package.json")) {
+    Write-Error "apps\dashboard\package.json is missing - dashboard sources not committed."
+    exit 1
+}
 Push-Location apps/dashboard
 npm install
 Pop-Location

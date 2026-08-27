@@ -41,6 +41,10 @@ fi
 echo ""
 
 echo "[3/6] Building and starting demo infrastructure + MCP server..."
+if [ ! -f mcp-servers/demo-infra/Dockerfile ]; then
+    echo "Error: mcp-servers/demo-infra/Dockerfile is missing - demo-infra sources not committed." >&2
+    exit 1
+fi
 $DOCKER_COMPOSE up -d --build postgres redis demo-infra-mcp
 sleep 5
 curl -fs http://localhost:8001/health >/dev/null && echo "  MCP server healthy at http://localhost:8000/mcp (API on :8001)" \
@@ -48,6 +52,10 @@ curl -fs http://localhost:8001/health >/dev/null && echo "  MCP server healthy a
 echo ""
 
 echo "[4/6] Installing dashboard dependencies..."
+if [ ! -f apps/dashboard/package.json ]; then
+    echo "Error: apps/dashboard/package.json is missing - dashboard sources not committed." >&2
+    exit 1
+fi
 (cd apps/dashboard && npm install)
 echo "  Dashboard dependencies installed"
 echo ""
