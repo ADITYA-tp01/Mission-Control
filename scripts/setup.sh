@@ -15,10 +15,17 @@ PYTHON_BIN="$(command -v python3 || command -v python)"
 [ -n "$PYTHON_BIN" ] || { echo "Error: python 3.10+ is required."; exit 1; }
 echo "  - Python: $($PYTHON_BIN --version)"
 
-DOCKER_COMPOSE="docker compose"
-if ! docker compose version >/dev/null 2>&1; then
-  command -v docker-compose >/dev/null 2>&1 || { echo "Error: docker compose is required."; exit 1; }
-  DOCKER_COMPOSE="docker-compose"
+# Detect Docker Compose (v2 plugin or legacy standalone); both must be 2.x.
+if docker compose version >/dev/null 2>&1; then
+  DOCKER_COMPOSE="docker compose"
+elif command -v docker-compose >/dev/null 2>&1; then
+  if docker-compose version 2>&1 | grep -q "v2"; then
+    DOCKER_COMPOSE="docker-compose"
+  else
+    echo "Error: docker-compose (legacy) found but is not v2; install 'docker compose' plugin."; exit 1
+  fi
+else
+  echo "Error: docker compose v2 is required."; exit 1
 fi
 echo "  - Compose: $DOCKER_COMPOSE"
 echo ""
@@ -45,7 +52,12 @@ echo "[4/6] Installing dashboard dependencies..."
 echo "  Dashboard dependencies installed"
 echo ""
 
-echo "[5/6] Starting the dashboard (background)..."
+echo "[5/6] Building dashboard for production..."
+(cd apps/dashboard && npm run build)
+echo "  Dashboard built"
+echo ""
+
+echo "[6/6] Starting the dashboard (background)..."
 (cd apps/dashboard && nohup npm run dev >/tmp/missioncontrol-dashboard.log 2>&1 &)
 sleep 5
 echo "  Dashboard starting on http://localhost:3001 (log: /tmp/missioncontrol-dashboard.log)"

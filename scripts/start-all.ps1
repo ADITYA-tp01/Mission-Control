@@ -6,6 +6,19 @@
 $ErrorActionPreference = "Continue"
 $root = Split-Path -Parent $PSScriptRoot
 
+# Configurable paths (override via env vars)
+$wslUser = $env:WSL_USER
+if (-not $wslUser) { $wslUser = "aditya" }
+$tfRunScript = $env:TF_RUN_SCRIPT
+if (-not $tfRunScript) { $tfRunScript = "/home/$wslUser/tf-run.sh" }
+$tfLiteLlmScript = $env:TF_LITELLM_SCRIPT
+if (-not $tfLiteLlmScript) { $tfLiteLlmScript = "/home/$wslUser/tf-litellm.sh" }
+$litellmLog = $env:LITELLM_LOG
+if (-not $litellmLog) { $litellmLog = "/home/$wslUser/litellm.log" }
+$tfLog = $env:TF_LOG
+if (-not $tfLog) { $tfLog = "/home/$wslUser/tf.log" }
+$mcpDir = Join-Path $root "mcp-servers\demo-infra"
+
 Write-Host ""
 Write-Host "=== MissionControl startup ===" -ForegroundColor Cyan
 
@@ -35,7 +48,7 @@ wsl -e bash -lc "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4000/v1
 $litUp = ($LASTEXITCODE -eq 0)
 $out = wsl -e bash -lc "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4000/v1/models --max-time 3"
 if ($out -ne "200") {
-    wsl -e bash -lc "setsid -f -- /home/aditya/tf-litellm.sh </dev/null > /home/aditya/litellm.log 2>&1"
+    wsl -e bash -lc "setsid -f -- $tfLiteLlmScript </dev/null > $litellmLog 2>&1"
     Start-Sleep -Seconds 8
     $out = wsl -e bash -lc "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4000/v1/models --max-time 3"
 }
@@ -47,7 +60,7 @@ Write-Host "[4/8] Starting TrueForge (WSL :3000)..."
 $out = ""
 try { $out = (wsl -e bash -lc "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000 --max-time 4") } catch { $out = "000" }
 if ($out -ne "200") {
-    wsl -e bash -lc "setsid -f -- /home/aditya/tf-run.sh </dev/null > /home/aditya/tf.log 2>&1"
+    wsl -e bash -lc "setsid -f -- $tfRunScript </dev/null > $tfLog 2>&1"
     $up = $false
     foreach ($i in 1..24) {
         Start-Sleep -Seconds 5
@@ -60,7 +73,25 @@ $out = wsl -e bash -lc "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:
 if ($out -eq "200") { Write-Host "  TrueForge: UP" -ForegroundColor Green }
 
 # ---------------------------------------------------------------- [5/8]
-Write-Host "[5/8] Keeping TrueForge MCP registration pointed at this machine..."
+Write-Host "[5/8] Starting demo-infra MCP server via Docker Compose..."
+$composeBin = "docker"
+if (Get-Command "docker-compose" -ErrorAction SilentlyContinue) {
+    $composeBin = "docker-compose"
+}
+$conn = Get-NetTCPConnection -LocalPort 8001 -State Listen -ErrorAction SilentlyContinue
+if ($conn) {
+    Write-Host "  MCP server already running"
+} else {
+    & $composeBin compose up -d --build demo-infra-mcp
+    Start-Sleep -Seconds 8
+    try {
+        $h = Invoke-RestMethod "http://localhost:8001/health" -TimeoutSec 10
+        Write-Host "  MCP server: UP ($($h.status))" -ForegroundColor Green
+    } catch { Write-Host "  MCP server: did not respond (check 'docker compose logs demo-infra-mcp')" -ForegroundColor Red }
+}
+
+# ---------------------------------------------------------------- [6/8]
+Write-Host "[6/8] Keeping TrueForge MCP registration pointed at this machine..."
 try {
     $mcp = Invoke-RestMethod "http://${wslIp}:3000/api/v1/settings/mcp-servers" -TimeoutSec 10
     $current = ($mcp | ConvertTo-Json -Depth 6)
@@ -78,21 +109,6 @@ try {
     }
 } catch {
     Write-Host "  WARNING: could not verify/update MCP registration: $($_.Exception.Message)" -ForegroundColor Yellow
-}
-
-# ---------------------------------------------------------------- [6/8]
-Write-Host "[6/8] Starting demo-infra MCP server (Windows :8000/:8001)..."
-$conn = Get-NetTCPConnection -LocalPort 8001 -State Listen -ErrorAction SilentlyContinue
-if ($conn) {
-    Write-Host "  already running"
-} else {
-    Start-Process python -ArgumentList "server.py" -WindowStyle Hidden `
-        -WorkingDirectory (Join-Path $root "mcp-servers\demo-infra")
-    Start-Sleep -Seconds 5
-    try {
-        $h = Invoke-RestMethod "http://localhost:8001/health" -TimeoutSec 8
-        Write-Host "  MCP server: UP ($($h.status))" -ForegroundColor Green
-    } catch { Write-Host "  MCP server: did not respond (check python window)" -ForegroundColor Red }
 }
 
 # ---------------------------------------------------------------- [7/8]
