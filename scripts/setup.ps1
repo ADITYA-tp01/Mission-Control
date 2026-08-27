@@ -44,7 +44,14 @@ if (-not (Test-Path ".env")) {
 Write-Host ""
 
 Write-Host "[3/6] Building and starting demo infrastructure + MCP server..."
-& $compose[0] @($compose[1..($compose.Length - 1)]) up -d --build postgres redis demo-infra-mcp
+# Build compose command arguments safely (avoids 1..0 slice bug on single-element array)
+$composeCmd = @()
+if ($compose.Length -eq 1) {
+    $composeCmd = $compose
+} else {
+    $composeCmd = @($compose[0]) + @($compose[1..($compose.Length - 1)])
+}
+& $composeCmd up -d --build postgres redis demo-infra-mcp
 Start-Sleep -Seconds 5
 try {
     Invoke-RestMethod -Uri "http://localhost:8001/health" -TimeoutSec 5 | Out-Null

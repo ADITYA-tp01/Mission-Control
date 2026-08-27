@@ -6,17 +6,17 @@
 $ErrorActionPreference = "Continue"
 $root = Split-Path -Parent $PSScriptRoot
 
-# Configurable paths (override via env vars)
+# Configurable paths (override via env vars; no defaults - must be set for WSL startup)
 $wslUser = $env:WSL_USER
-if (-not $wslUser) { $wslUser = "aditya" }
+if (-not $wslUser) { Write-Error "WSL_USER env var not set (e.g., WSL_USER=aditya)"; exit 1 }
 $tfRunScript = $env:TF_RUN_SCRIPT
-if (-not $tfRunScript) { $tfRunScript = "/home/$wslUser/tf-run.sh" }
+if (-not $tfRunScript) { Write-Error "TF_RUN_SCRIPT env var not set (e.g., TF_RUN_SCRIPT=/home/aditya/tf-run.sh)"; exit 1 }
 $tfLiteLlmScript = $env:TF_LITELLM_SCRIPT
-if (-not $tfLiteLlmScript) { $tfLiteLlmScript = "/home/$wslUser/tf-litellm.sh" }
+if (-not $tfLiteLlmScript) { Write-Error "TF_LITELLM_SCRIPT env var not set (e.g., TF_LITELLM_SCRIPT=/home/aditya/tf-litellm.sh)"; exit 1 }
 $litellmLog = $env:LITELLM_LOG
-if (-not $litellmLog) { $litellmLog = "/home/$wslUser/litellm.log" }
+if (-not $litellmLog) { Write-Error "LITELLM_LOG env var not set (e.g., LITELLM_LOG=/home/aditya/litellm.log)"; exit 1 }
 $tfLog = $env:TF_LOG
-if (-not $tfLog) { $tfLog = "/home/$wslUser/tf.log" }
+if (-not $tfLog) { Write-Error "TF_LOG env var not set (e.g., TF_LOG=/home/aditya/tf.log)"; exit 1 }
 $mcpDir = Join-Path $root "mcp-servers\demo-infra"
 
 Write-Host ""
@@ -120,13 +120,29 @@ $envFile = Join-Path $root "apps\dashboard\.env.local"
 $needRestart = $false
 if (Test-Path $envFile) {
     $envTxt = Get-Content $envFile -Raw
+    $newTxt = $envTxt
+    $changed = $false
+
+    # Check and update TRUEFORGE_URL independently
     if ($envTxt -notmatch [regex]::Escape("TRUEFORGE_URL=http://${wslIp}:3000")) {
-        $envTxt = ($envTxt -split "`n" | ForEach-Object {
-            if ($_ -match "^TRUEFORGE_URL=")            { "TRUEFORGE_URL=http://${wslIp}:3000" }
-            elseif ($_ -match "^NEXT_PUBLIC_TRUEFORGE_URL=") { "NEXT_PUBLIC_TRUEFORGE_URL=http://${wslIp}:3000" }
-            else { $_ }
+        $newTxt = ($newTxt -split "`n" | ForEach-Object {
+            if ($_ -match "^TRUEFORGE_URL=") { "TRUEFORGE_URL=http://${wslIp}:3000"; $script:changed = $true; $_ } else { $_ }
         }) -join "`n"
-        [IO.File]::WriteAllText($envFile, $envTxt)
+    }
+
+    # Check and update NEXT_PUBLIC_TRUEFORGE_URL independently
+    if ($envTxt -notmatch [regex]::Escape("NEXT_PUBLIC_TRUEFORGE_URL=http://${wslIp}:3000")) {
+        $newTxt = ($newTxt -split "`n" | ForEach-Object {
+            if ($_ -match "^NEXT_PUBLIC_TRUEFORGE_URL=") { "NEXT_PUBLIC_TRUEFORGE_URL=http://${wslIp}:3000"; $script:changed = $true; $_ } else { $_ }
+        }) -join "`n"
+    }
+
+    # Append missing variables if not present
+    if ($newTxt -notmatch "TRUEFORGE_URL=") { $newTxt += "`nTRUEFORGE_URL=http://${wslIp}:3000"; $changed = $true }
+    if ($newTxt -notmatch "NEXT_PUBLIC_TRUEFORGE_URL=") { $newTxt += "`nNEXT_PUBLIC_TRUEFORGE_URL=http://${wslIp}:3000"; $changed = $true }
+
+    if ($changed) {
+        [IO.File]::WriteAllText($envFile, $newTxt)
         $needRestart = $true
         Write-Host "  .env.local updated with new WSL IP" -ForegroundColor Yellow
     }

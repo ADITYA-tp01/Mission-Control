@@ -1,0 +1,201 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ── Ops-room dark theme (single, deliberate theme) ─────────────── */
+    --background: 222 47% 5%;
+    --foreground: 213 31% 91%;
+
+    --card: 222 42% 7%;
+    --card-foreground: 213 31% 91%;
+
+    --popover: 222 44% 6%;
+    --popover-foreground: 213 31% 91%;
+
+    /* Phosphor cyan — the one accent */
+    --primary: 187 92% 56%;
+    --primary-foreground: 222 47% 5%;
+
+    --secondary: 218 34% 12%;
+    --secondary-foreground: 213 28% 85%;
+
+    --muted: 218 32% 11%;
+    --muted-foreground: 217 15% 61%;
+
+    --accent: 218 34% 13%;
+    --accent-foreground: 213 28% 88%;
+
+    --destructive: 0 84% 63%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 219 30% 14%;
+    --input: 219 30% 16%;
+    --ring: 187 92% 56%;
+    --radius: 0.375rem;
+
+    /* ── MissionControl status system ────────────────────────────────── */
+    --ok: 158 72% 51%;
+    --warn: 40 96% 58%;
+    --bad: 0 91% 64%;
+    --info: 210 100% 68%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.25);
+    color: hsl(var(--foreground));
+  }
+
+  /* Slim, quiet scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 999px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer components {
+  /* Blueprint grid + vignette backdrop. Sits behind everything. */
+  .grid-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(hsl(var(--border) / 0.35) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.35) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 20%, transparent 78%);
+    -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 20%, transparent 78%);
+  }
+
+  /* Very subtle horizontal scanlines — CRT hint, not a gimmick */
+  .scanlines {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      180deg,
+      transparent 0px,
+      transparent 3px,
+      hsl(0 0% 0% / 0.07) 4px
+    );
+  }
+
+  .panel {
+    position: relative;
+    border-radius: var(--radius);
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--card) / 0.82);
+    backdrop-filter: blur(6px);
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.625rem 1rem;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+
+  /* Section labels: tiny caps, wide tracking */
+  .label-caps {
+    font-size: 0.625rem;
+    line-height: 1rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Numeric readouts: mono, tabular, tight */
+  .num {
+    font-family: var(--font-jetbrains), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  .hairline {
+    border-color: hsl(var(--border));
+  }
+
+  /* Focus states that match the accent */
+  :focus-visible {
+    outline: 2px solid hsl(var(--primary) / 0.7);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+@layer utilities {
+  .text-glow {
+    text-shadow: 0 0 12px currentColor;
+  }
+
+  /* Marching dashes for "live" connection lines */
+  .animate-flow {
+    animation: flow 1.2s linear infinite;
+  }
+}
+
+@keyframes flow {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
