@@ -21,9 +21,15 @@ if (-not $python) { Write-Error "python 3.10+ is required."; exit 1 }
 Write-Host ("  Node:   " + (node --version))
 Write-Host ("  Python: " + (& $python --version))
 
-if (docker compose version 2>$null) { $compose = @("docker", "compose") }
-elseif (Test-Command "docker-compose") { $compose = @("docker-compose") }
-else { Write-Error "docker compose is required."; exit 1 }
+# Detect Docker Compose (v2 plugin or legacy standalone); both must be 2.x.
+$compose = $null
+try { docker compose version > $null 2>&1; if ($LASTEXITCODE -eq 0) { $compose = @("docker", "compose") } } catch { }
+if (-not $compose -and (Get-Command "docker-compose" -ErrorAction SilentlyContinue)) {
+    $v = (& docker-compose version 2>$null)
+    if ($v -match "^Docker Compose version v2") { $compose = @("docker-compose") }
+    else { Write-Error "docker-compose (legacy) found but is not v2; install 'docker compose' plugin."; exit 1 }
+}
+if (-not $compose) { Write-Error "docker compose v2 is required."; exit 1 }
 Write-Host "  Compose: $($compose -join ' ')"
 Write-Host ""
 
@@ -38,7 +44,7 @@ if (-not (Test-Path ".env")) {
 Write-Host ""
 
 Write-Host "[3/6] Building and starting demo infrastructure + MCP server..."
-& $compose[0] $compose[1..($compose.Length-1)] up -d --build postgres redis demo-infra-mcp
+& $compose[0] @($compose[1..($compose.Length - 1)]) up -d --build postgres redis demo-infra-mcp
 Start-Sleep -Seconds 5
 try {
     Invoke-RestMethod -Uri "http://localhost:8001/health" -TimeoutSec 5 | Out-Null

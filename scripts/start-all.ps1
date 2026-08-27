@@ -97,6 +97,9 @@ if ($conn) {
 
 # ---------------------------------------------------------------- [7/8]
 Write-Host "[7/8] Starting dashboard (Windows :3001)..."
+$npm = (Get-Command npm.cmd -ErrorAction SilentlyContinue).Source
+if (-not $npm) { $npm = (Get-Command npm -ErrorAction SilentlyContinue).Source }
+if (-not $npm) { $npm = "npm"; Write-Host "  WARNING: npm not found on PATH; assuming 'npm'" -ForegroundColor Yellow }
 $envFile = Join-Path $root "apps\dashboard\.env.local"
 $needRestart = $false
 if (Test-Path $envFile) {
@@ -118,15 +121,15 @@ if ($conn) {
         $conn | Select-Object -ExpandProperty OwningProcess -Unique |
             ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
         Start-Sleep -Seconds 2
-        Start-Process "$env:ProgramFiles\nodejs\npm.cmd" -ArgumentList "run","dev" `
+        Start-Process $npm -ArgumentList "run","dev" `
             -WindowStyle Hidden -WorkingDirectory (Join-Path $root "apps\dashboard")
         Write-Host "  dashboard restarted with new IP"
     } else {
         Write-Host "  already running"
     }
 } else {
-    Start-Process "$env:ProgramFiles\nodejs\npm.cmd" -ArgumentList "run","dev" `
-        -WindowStyle Hidden -WorkingDirectory (Join-Path $root "apps\dashboard")
+    Start-Process $npm -ArgumentList "run","dev" `
+            -WindowStyle Hidden -WorkingDirectory (Join-Path $root "apps\dashboard")
     Write-Host "  dashboard starting..."
 }
 $dashUp = $false
@@ -145,9 +148,13 @@ try {
 
 Write-Host ""
 Write-Host "=== READY ===" -ForegroundColor Cyan
+$tfUrl = "http://${wslIp}:3000"
 Write-Host "  Dashboard      : http://localhost:3001"
-Write-Host "  TrueForge UI   : http://$wslIp`:3000"
+Write-Host "  TrueForge UI   : ${tfUrl}"
 Write-Host "  MCP endpoint   : http://localhost:8000/mcp"
+if ($needRestart) {
+    Write-Host "  NOTE: TrueForge URL changed - close old tabs and reopen ${tfUrl}" -ForegroundColor Yellow
+}
 Write-Host ""
 Write-Host "  Run a demo: Dashboard -> Chaos Lab -> Inject -> approve in TrueForge chat"
 Write-Host ""
