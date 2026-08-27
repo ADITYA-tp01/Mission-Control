@@ -126,11 +126,27 @@ def test_second_chaos_clears_first():
     s = make_state()
     s.inject_chaos("payment-service", "error_spike")
     assert s.get_service("payment-service").status == "degraded"
-    # inject again on a different service — payment must recover
+    # inject again on a different service ΓÇö payment must recover
     s.inject_chaos("api-gateway", "outage")
     assert s.get_service("payment-service").status == "healthy"
     assert s.get_service("api-gateway").status == "down"
     assert s.chaos_service == "api-gateway"
+
+
+
+def test_invalid_chaos_does_not_heal_active_incident():
+    s = make_state()
+    s.inject_chaos("payment-service", "error_spike")
+    assert s.get_service("payment-service").status == "degraded"
+    result = s.inject_chaos("bogus-service", "error_spike")
+    assert result["status"] == "error"
+    assert s.get_service("payment-service").status == "degraded"
+    assert s.chaos_active is True
+    assert s.chaos_service == "payment-service"
+    result = s.inject_chaos("payment-service", "not-a-real-type")
+    assert result["status"] == "error"
+    assert s.get_service("payment-service").status == "degraded"
+    assert s.chaos_active is True
 
 
 def test_metric_sampler_appends():

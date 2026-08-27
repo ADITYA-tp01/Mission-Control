@@ -292,6 +292,13 @@ class InfraState:
 
     def inject_chaos(self, service: str, chaos_type: str = "error_spike") -> Dict:
         with self.lock:
+            # Validate the new request FIRST so an invalid replacement
+            # never silently heals the incident that is still active.
+            profile = CHAOS_PROFILES.get(chaos_type)
+            svc = self.services.get(service)
+            if not profile or not svc:
+                return {"status": "error", "message": f"Unknown service or chaos_type: {service}, {chaos_type}"}
+
             # If chaos is already active, restore the previous origin
             # before applying the new event so it isn't orphaned.
             if self.chaos_active and self.chaos_service:
@@ -307,11 +314,6 @@ class InfraState:
                     level="INFO",
                     message="Prior chaos cleared before new injection",
                 ))
-
-            profile = CHAOS_PROFILES.get(chaos_type)
-            svc = self.services.get(service)
-            if not profile or not svc:
-                return {"status": "error", "message": f"Unknown service or chaos_type: {service}, {chaos_type}"}
 
             affected = [service]
             if chaos_type == "cascading_failure":
