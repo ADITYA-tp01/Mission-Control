@@ -52,15 +52,11 @@ echo "[4/6] Installing dashboard dependencies..."
 echo "  Dashboard dependencies installed"
 echo ""
 
-echo "[5/6] Building dashboard for production..."
+echo "[5/6] Building and starting the dashboard (background)..."
 (cd apps/dashboard && npm run build)
-echo "  Dashboard built"
-echo ""
-
-echo "[6/6] Starting the dashboard (background)..."
 (cd apps/dashboard && nohup npm run dev >/tmp/missioncontrol-dashboard.log 2>&1 &)
 sleep 5
-echo "  Dashboard starting on http://localhost:3001 (log: /tmp/missioncontrol-dashboard.log)"
+echo "  Dashboard built and starting on http://localhost:3001 (log: /tmp/missioncontrol-dashboard.log)"
 echo ""
 
 echo "[6/6] Starting TrueForge agent runtime..."

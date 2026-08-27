@@ -40,6 +40,12 @@ def main() -> None:
         sys.exit(1)
 
     service, chaos_type = sys.argv[1], sys.argv[2]
+    if service not in SERVICES:
+        print(f"Unknown service '{service}'. Allowed: {', '.join(SERVICES)}")
+        sys.exit(1)
+    if chaos_type not in CHAOS_TYPES:
+        print(f"Unknown chaos_type '{chaos_type}'. Allowed: {', '.join(CHAOS_TYPES)}")
+        sys.exit(1)
     message = sys.argv[3] if len(sys.argv) > 3 else f"{service} {chaos_type} detected"
 
     print(f"[1/2] Injecting {chaos_type} into {service} via demo-infra API...")

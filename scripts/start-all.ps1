@@ -6,18 +6,19 @@
 $ErrorActionPreference = "Continue"
 $root = Split-Path -Parent $PSScriptRoot
 
-# Configurable paths (override via env vars; no defaults - must be set for WSL startup)
+# Configurable paths. WSL_USER is required; all other paths default to that
+# user's home directory and can be overridden via env vars.
 $wslUser = $env:WSL_USER
 if (-not $wslUser) { Write-Error "WSL_USER env var not set (e.g., WSL_USER=aditya)"; exit 1 }
+$wslHome = "/home/$wslUser"
 $tfRunScript = $env:TF_RUN_SCRIPT
-if (-not $tfRunScript) { Write-Error "TF_RUN_SCRIPT env var not set (e.g., TF_RUN_SCRIPT=/home/aditya/tf-run.sh)"; exit 1 }
+if (-not $tfRunScript) { $tfRunScript = "$wslHome/tf-run.sh" }
 $tfLiteLlmScript = $env:TF_LITELLM_SCRIPT
-if (-not $tfLiteLlmScript) { Write-Error "TF_LITELLM_SCRIPT env var not set (e.g., TF_LITELLM_SCRIPT=/home/aditya/tf-litellm.sh)"; exit 1 }
+if (-not $tfLiteLlmScript) { $tfLiteLlmScript = "$wslHome/tf-litellm.sh" }
 $litellmLog = $env:LITELLM_LOG
-if (-not $litellmLog) { Write-Error "LITELLM_LOG env var not set (e.g., LITELLM_LOG=/home/aditya/litellm.log)"; exit 1 }
+if (-not $litellmLog) { $litellmLog = "$wslHome/litellm.log" }
 $tfLog = $env:TF_LOG
-if (-not $tfLog) { Write-Error "TF_LOG env var not set (e.g., TF_LOG=/home/aditya/tf.log)"; exit 1 }
-$mcpDir = Join-Path $root "mcp-servers\demo-infra"
+if (-not $tfLog) { $tfLog = "$wslHome/tf.log" }
 
 Write-Host ""
 Write-Host "=== MissionControl startup ===" -ForegroundColor Cyan
@@ -44,8 +45,6 @@ Write-Host "  Windows host (MCP):   $gw  (seen from WSL)"
 
 # ---------------------------------------------------------------- [3/8]
 Write-Host "[3/8] Starting LiteLLM bridge (WSL :4000)..."
-wsl -e bash -lc "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4000/v1/models --max-time 3" | Out-Null
-$litUp = ($LASTEXITCODE -eq 0)
 $out = wsl -e bash -lc "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4000/v1/models --max-time 3"
 if ($out -ne "200") {
     wsl -e bash -lc "setsid -f -- $tfLiteLlmScript </dev/null > $litellmLog 2>&1"
@@ -74,15 +73,17 @@ if ($out -eq "200") { Write-Host "  TrueForge: UP" -ForegroundColor Green }
 
 # ---------------------------------------------------------------- [5/8]
 Write-Host "[5/8] Starting demo-infra MCP server via Docker Compose..."
-$composeBin = "docker"
-if (Get-Command "docker-compose" -ErrorAction SilentlyContinue) {
-    $composeBin = "docker-compose"
+$compose = @()
+try { docker compose version *> $null; if ($LASTEXITCODE -eq 0) { $compose = @("docker", "compose") } } catch { }
+if ($compose.Count -eq 0 -and (Get-Command "docker-compose" -ErrorAction SilentlyContinue)) {
+    $compose = @("docker-compose")
 }
+if ($compose.Count -eq 0) { Write-Error "docker compose v2 is required."; exit 1 }
 $conn = Get-NetTCPConnection -LocalPort 8001 -State Listen -ErrorAction SilentlyContinue
 if ($conn) {
     Write-Host "  MCP server already running"
 } else {
-    & $composeBin compose up -d --build demo-infra-mcp
+    & $compose up -d --build demo-infra-mcp
     Start-Sleep -Seconds 8
     try {
         $h = Invoke-RestMethod "http://localhost:8001/health" -TimeoutSec 10
@@ -119,27 +120,25 @@ if (-not $npm) { $npm = "npm"; Write-Host "  WARNING: npm not found on PATH; ass
 $envFile = Join-Path $root "apps\dashboard\.env.local"
 $needRestart = $false
 if (Test-Path $envFile) {
-    $envTxt = Get-Content $envFile -Raw
-    $newTxt = $envTxt
+    $newTxt = Get-Content $envFile -Raw
     $changed = $false
 
-    # Check and update TRUEFORGE_URL independently
-    if ($envTxt -notmatch [regex]::Escape("TRUEFORGE_URL=http://${wslIp}:3000")) {
-        $newTxt = ($newTxt -split "`n" | ForEach-Object {
-            if ($_ -match "^TRUEFORGE_URL=") { "TRUEFORGE_URL=http://${wslIp}:3000"; $script:changed = $true; $_ } else { $_ }
-        }) -join "`n"
+    # Check and update each TrueForge URL variable independently, appending
+    # when a variable is missing. The replacement loop emits only the new
+    # value so stale lines are replaced, never duplicated.
+    foreach ($key in @("TRUEFORGE_URL", "NEXT_PUBLIC_TRUEFORGE_URL")) {
+        $newVal = "${key}=http://${wslIp}:3000"
+        if ($newTxt -notmatch [regex]::Escape($newVal)) {
+            if ($newTxt -match "^${key}=") {
+                $newTxt = (($newTxt -split "`r?`n") | ForEach-Object {
+                    if ($_ -match "^${key}=") { $newVal } else { $_ }
+                }) -join "`n"
+            } else {
+                $newTxt = $newTxt.TrimEnd("`r", "`n") + "`n" + $newVal + "`n"
+            }
+            $changed = $true
+        }
     }
-
-    # Check and update NEXT_PUBLIC_TRUEFORGE_URL independently
-    if ($envTxt -notmatch [regex]::Escape("NEXT_PUBLIC_TRUEFORGE_URL=http://${wslIp}:3000")) {
-        $newTxt = ($newTxt -split "`n" | ForEach-Object {
-            if ($_ -match "^NEXT_PUBLIC_TRUEFORGE_URL=") { "NEXT_PUBLIC_TRUEFORGE_URL=http://${wslIp}:3000"; $script:changed = $true; $_ } else { $_ }
-        }) -join "`n"
-    }
-
-    # Append missing variables if not present
-    if ($newTxt -notmatch "TRUEFORGE_URL=") { $newTxt += "`nTRUEFORGE_URL=http://${wslIp}:3000"; $changed = $true }
-    if ($newTxt -notmatch "NEXT_PUBLIC_TRUEFORGE_URL=") { $newTxt += "`nNEXT_PUBLIC_TRUEFORGE_URL=http://${wslIp}:3000"; $changed = $true }
 
     if ($changed) {
         [IO.File]::WriteAllText($envFile, $newTxt)
