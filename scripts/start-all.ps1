@@ -6,19 +6,19 @@
 $ErrorActionPreference = "Continue"
 $root = Split-Path -Parent $PSScriptRoot
 
-# Configurable paths. WSL_USER is required; all other paths default to that
-# user's home directory and can be overridden via env vars.
-$wslUser = $env:WSL_USER
-if (-not $wslUser) { Write-Error "WSL_USER env var not set (e.g., WSL_USER=aditya)"; exit 1 }
-$wslHome = "/home/$wslUser"
-$tfRunScript = $env:TF_RUN_SCRIPT
-if (-not $tfRunScript) { $tfRunScript = "$wslHome/tf-run.sh" }
+# Repository-supplied WSL launchers. Paths are resolved from this checkout via
+# wslpath (the repo is mounted under /mnt/c/...), so no per-developer home
+# scripts or hard-coded usernames are required. Override any of these via env.
+$rootLinux = (wsl -e bash -lc "wslpath -a -u '$root'" 2>$null).Trim()
+if (-not $rootLinux) { Write-Error "Could not locate this repo inside WSL (is WSL installed?)"; exit 1 }
 $tfLiteLlmScript = $env:TF_LITELLM_SCRIPT
-if (-not $tfLiteLlmScript) { $tfLiteLlmScript = "$wslHome/tf-litellm.sh" }
+if (-not $tfLiteLlmScript) { $tfLiteLlmScript = "$rootLinux/scripts/wsl/start-litellm.sh" }
+$tfRunScript = $env:TF_RUN_SCRIPT
+if (-not $tfRunScript) { $tfRunScript = "$rootLinux/scripts/wsl/start-trueforge.sh" }
 $litellmLog = $env:LITELLM_LOG
-if (-not $litellmLog) { $litellmLog = "$wslHome/litellm.log" }
+if (-not $litellmLog) { $litellmLog = "~/litellm.log" }
 $tfLog = $env:TF_LOG
-if (-not $tfLog) { $tfLog = "$wslHome/tf.log" }
+if (-not $tfLog) { $tfLog = "~/tf.log" }
 
 Write-Host ""
 Write-Host "=== MissionControl startup ===" -ForegroundColor Cyan
@@ -47,7 +47,7 @@ Write-Host "  Windows host (MCP):   $gw  (seen from WSL)"
 Write-Host "[3/8] Starting LiteLLM bridge (WSL :4000)..."
 $out = wsl -e bash -lc "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4000/v1/models --max-time 3"
 if ($out -ne "200") {
-    wsl -e bash -lc "setsid -f -- $tfLiteLlmScript </dev/null > $litellmLog 2>&1"
+    wsl -e bash -lc "setsid -f -- bash '$tfLiteLlmScript' </dev/null > $litellmLog 2>&1"
     Start-Sleep -Seconds 8
     $out = wsl -e bash -lc "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4000/v1/models --max-time 3"
 }
@@ -59,7 +59,7 @@ Write-Host "[4/8] Starting TrueForge (WSL :3000)..."
 $out = ""
 try { $out = (wsl -e bash -lc "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000 --max-time 4") } catch { $out = "000" }
 if ($out -ne "200") {
-    wsl -e bash -lc "setsid -f -- $tfRunScript </dev/null > $tfLog 2>&1"
+    wsl -e bash -lc "setsid -f -- bash '$tfRunScript' </dev/null > $tfLog 2>&1"
     $up = $false
     foreach ($i in 1..24) {
         Start-Sleep -Seconds 5

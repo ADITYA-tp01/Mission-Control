@@ -36,7 +36,7 @@ foreach ($port in 3001, 8001, 8000) {
     }
 }
 
-# WSL side: TrueForge + LiteLLM
-wsl -e bash -lc "pkill -f '[t]f-run' 2>/dev/null; pkill -9 -f '[l]itellm' 2>/dev/null; echo wsl-stopped"
+# WSL side: TrueForge + LiteLLM (repo launchers and the processes they exec)
+wsl -e bash -lc "pkill -f '[s]tart-trueforge' 2>/dev/null; pkill -f '[t]rueforge' 2>/dev/null; pkill -9 -f '[s]tart-litellm' 2>/dev/null; pkill -9 -f '[l]itellm' 2>/dev/null; echo wsl-stopped"
 
 Write-Host "Done. (WSL VM itself keeps running; use 'wsl --shutdown' to fully stop it.)" -ForegroundColor Green
