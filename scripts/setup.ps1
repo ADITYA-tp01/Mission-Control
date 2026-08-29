@@ -49,14 +49,7 @@ if (-not (Test-Path "mcp-servers\demo-infra\Dockerfile")) {
     Write-Error "mcp-servers\demo-infra\Dockerfile is missing - demo-infra sources not committed."
     exit 1
 }
-# Build compose command arguments safely (avoids 1..0 slice bug on single-element array)
-$composeCmd = @()
-if ($compose.Length -eq 1) {
-    $composeCmd = $compose
-} else {
-    $composeCmd = @($compose[0]) + @($compose[1..($compose.Length - 1)])
-}
-& $composeCmd up -d --build postgres redis demo-infra-mcp
+docker compose up -d --build postgres redis demo-infra-mcp
 Start-Sleep -Seconds 5
 try {
     Invoke-RestMethod -Uri "http://localhost:8001/health" -TimeoutSec 5 | Out-Null
