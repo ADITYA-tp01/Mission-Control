@@ -60,8 +60,8 @@ Write-Host "  Dashboard starting on http://localhost:3001" -ForegroundColor Gree
 Write-Host "[5/6] Setting up WSL..." -ForegroundColor Yellow
 $wslLinuxNode = wsl -d Ubuntu -- bash -c 'test -f /usr/bin/node && echo ok || echo missing'
 if ($wslLinuxNode -match "missing") {
-    Write-Host "  Installing Node.js 20 in WSL (first time only)..." -ForegroundColor Yellow
-    wsl -d Ubuntu -- bash -c 'curl -fsSL https://deb.nodesource.com/setup_20.x -o /tmp/ns.sh'
+    Write-Host "  Installing Node.js 22 in WSL (first time only)..." -ForegroundColor Yellow
+    wsl -d Ubuntu -- bash -c 'curl -fsSL https://deb.nodesource.com/setup_22.x -o /tmp/ns.sh'
     wsl -d Ubuntu -- bash -c 'sudo bash /tmp/ns.sh'
     wsl -d Ubuntu -- bash -c 'sudo apt-get install -y nodejs'
     Write-Host "  Node.js installed in WSL" -ForegroundColor Green
