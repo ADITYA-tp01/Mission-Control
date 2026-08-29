@@ -84,7 +84,7 @@ Write-Host "  Run in a separate terminal:" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "      npx @truefoundry/trueforge" -ForegroundColor White
 Write-Host ""
-Write-Host "  Then in the TrueForge UI (http://localhost:3000):"
+Write-Host "  Then in the TrueForge UI (http://localhost:8790):"
 Write-Host "    a. Connect your model provider (OpenAI key from .env)"
 Write-Host "    b. Add an MCP server -> URL: http://localhost:8000/mcp"
 Write-Host "    c. Create an agent named 'missioncontrol' using agent/system-prompt.md"
@@ -96,7 +96,7 @@ Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host "  MissionControl is ready!"
 Write-Host "========================================="
 Write-Host ""
-Write-Host "  TrueForge UI:   http://localhost:3000   (after 'npx @truefoundry/trueforge')"
+Write-Host "  TrueForge UI:   http://localhost:8790   (after 'npx @truefoundry/trueforge')"
 Write-Host "  Dashboard:      http://localhost:3001"
 Write-Host "  MCP endpoint:   http://localhost:8000/mcp"
 Write-Host "  REST API:       http://localhost:8001"

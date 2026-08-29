@@ -55,20 +55,20 @@ if ($out -eq "200") { Write-Host "  LiteLLM: UP" -ForegroundColor Green }
 else { Write-Host "  LiteLLM: FAILED to start (check WSL ~/litellm.log)" -ForegroundColor Red }
 
 # ---------------------------------------------------------------- [4/8]
-Write-Host "[4/8] Starting TrueForge (WSL :3000)..."
+Write-Host "[4/8] Starting TrueForge (WSL :8790)..."
 $out = ""
-try { $out = (wsl -e bash -lc "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000 --max-time 4") } catch { $out = "000" }
+try { $out = (wsl -e bash -lc "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8790 --max-time 4") } catch { $out = "000" }
 if ($out -ne "200") {
     wsl -e bash -lc "setsid -f -- bash '$tfRunScript' </dev/null > $tfLog 2>&1"
     $up = $false
     foreach ($i in 1..24) {
         Start-Sleep -Seconds 5
-        $out = wsl -e bash -lc "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000 --max-time 4"
+        $out = wsl -e bash -lc "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8790 --max-time 4"
         if ($out -eq "200") { $up = $true; break }
     }
     if (-not $up) { Write-Host "  TrueForge: FAILED (check WSL ~/tf.log)" -ForegroundColor Red }
 }
-$out = wsl -e bash -lc "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000 --max-time 4"
+$out = wsl -e bash -lc "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8790 --max-time 4"
 if ($out -eq "200") { Write-Host "  TrueForge: UP" -ForegroundColor Green }
 
 # ---------------------------------------------------------------- [5/8]
@@ -94,7 +94,7 @@ if ($conn) {
 # ---------------------------------------------------------------- [6/8]
 Write-Host "[6/8] Keeping TrueForge MCP registration pointed at this machine..."
 try {
-    $mcp = Invoke-RestMethod "http://${wslIp}:3000/api/v1/settings/mcp-servers" -TimeoutSec 10
+    $mcp = Invoke-RestMethod "http://${wslIp}:8790/api/v1/settings/mcp-servers" -TimeoutSec 10
     $current = ($mcp | ConvertTo-Json -Depth 6)
     $want = "http://${gw}:8000/mcp"
     if ($current -notmatch [regex]::Escape($want)) {
@@ -102,7 +102,7 @@ try {
             type = "remote"; name = "demo-infra"; url = $want
             description = "Simulated production infra: 4 services with metrics, logs, deploys, chaos injection and approval-gated rollback/restart tools."
         } } | ConvertTo-Json -Depth 6
-        Invoke-RestMethod -Method Put -Uri "http://${wslIp}:3000/api/v1/settings/mcp-servers" `
+        Invoke-RestMethod -Method Put -Uri "http://${wslIp}:8790/api/v1/settings/mcp-servers" `
             -ContentType "application/json" -Body $body -TimeoutSec 15 | Out-Null
         Write-Host "  MCP registration updated -> $want" -ForegroundColor Yellow
     } else {
@@ -127,7 +127,7 @@ if (Test-Path $envFile) {
     # when a variable is missing. The replacement loop emits only the new
     # value so stale lines are replaced, never duplicated.
     foreach ($key in @("TRUEFORGE_URL", "NEXT_PUBLIC_TRUEFORGE_URL")) {
-        $newVal = "${key}=http://${wslIp}:3000"
+        $newVal = "${key}=http://${wslIp}:8790"
         if ($newTxt -notmatch [regex]::Escape($newVal)) {
             if ($newTxt -match "^${key}=") {
                 $newTxt = (($newTxt -split "`r?`n") | ForEach-Object {
@@ -179,7 +179,7 @@ try {
 
 Write-Host ""
 Write-Host "=== READY ===" -ForegroundColor Cyan
-$tfUrl = "http://${wslIp}:3000"
+$tfUrl = "http://${wslIp}:8790"
 Write-Host "  Dashboard      : http://localhost:3001"
 Write-Host "  TrueForge UI   : ${tfUrl}"
 Write-Host "  MCP endpoint   : http://localhost:8000/mcp"

@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const baseUrl =
       process.env.TRUEFORGE_URL ||
       process.env.NEXT_PUBLIC_TRUEFORGE_URL ||
-      'http://localhost:3000'
+      'http://localhost:8790'
     const token = process.env.TRUEFORGE_API_KEY
 
     const client = new TrueForge({
@@ -63,7 +63,7 @@ Alert type: ${alert_type}`
     return NextResponse.json(
       {
         error: 'Failed to trigger incident response',
-        hint: `Is TrueForge running at ${process.env.TRUEFORGE_URL || process.env.NEXT_PUBLIC_TRUEFORGE_URL || 'http://localhost:3000'} with an agent named "missioncontrol"?`,
+        hint: `Is TrueForge running at ${process.env.TRUEFORGE_URL || process.env.NEXT_PUBLIC_TRUEFORGE_URL || 'http://localhost:8790'} with an agent named "missioncontrol"?`,
         details: String(error),
       },
       { status: 502 }
