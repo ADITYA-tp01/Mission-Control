@@ -82,7 +82,16 @@ if ($wslTf -match "missing") {
 
 # Launch TrueForge in WSL
 Write-Host "  Launching TrueForge in WSL..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "wsl -d Ubuntu -- bash -c 'export PATH=/usr/bin:/usr/local/bin:`$PATH && cd ~ && npx @truefoundry/trueforge'"
+$wslScript = @'
+#!/bin/bash
+export PATH=/usr/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/sbin:$PATH
+cd ~
+npx @truefoundry/trueforge
+'@
+$scriptPath = "$env:TEMP\start-tf.sh"
+[System.IO.File]::WriteAllText($scriptPath, $wslScript, [System.Text.UTF8Encoding]::new($false))
+Start-Process wsl -ArgumentList "-d Ubuntu -- bash -c 'bash /mnt/c/$($env:TEMP -replace '\\','/')/start-tf.sh'"
+Start-Sleep -Seconds 2
 Write-Host "  TrueForge terminal opened" -ForegroundColor Green
 
 # Done
