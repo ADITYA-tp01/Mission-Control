@@ -15,7 +15,7 @@ from http_api import serve_forever as serve_rest_api
 from http_api import HOST as REST_HOST
 
 
-MCP_HOST = "0.0.0.0"
+MCP_HOST = "0.0.0.0"  # Bind all interfaces so the MCP server is reachable from the host when running in Docker
 MCP_PORT = 8000
 
 mcp = FastMCP(
