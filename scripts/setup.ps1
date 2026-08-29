@@ -73,7 +73,7 @@ Write-Host ""
 
 Write-Host "[5/6] Starting the dashboard..."
 Push-Location apps/dashboard
-Start-Process -NoNewWindow npm -ArgumentList "run", "dev" -RedirectStandardOutput "$env:TEMP\missioncontrol-dashboard.log" -RedirectStandardError "$env:TEMP\missioncontrol-dashboard.err.log"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PWD'; npm run dev"
 Pop-Location
 Start-Sleep -Seconds 5
 Write-Host "  Dashboard starting on http://localhost:3001"
