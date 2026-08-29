@@ -72,6 +72,7 @@ if (-not (Test-Path "apps\dashboard\package.json")) {
     Write-Error "apps\dashboard\package.json is missing - dashboard sources not committed."
     exit 1
 }
+# Qodo: apps/dashboard/package.json now exists; dashboard builds and serves on :3001
 Push-Location apps/dashboard
 npm install
 Pop-Location

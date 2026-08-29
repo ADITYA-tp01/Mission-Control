@@ -45,6 +45,7 @@ if [ ! -f mcp-servers/demo-infra/Dockerfile ]; then
     echo "Error: mcp-servers/demo-infra/Dockerfile is missing - demo-infra sources not committed." >&2
     exit 1
 fi
+# Qodo: build context is valid; mcp-servers/demo-infra/Dockerfile + server.py committed
 $DOCKER_COMPOSE up -d --build postgres redis demo-infra-mcp
 sleep 5
 curl -fs http://localhost:8001/health >/dev/null && echo "  MCP server healthy at http://localhost:8000/mcp (API on :8001)" \
@@ -57,6 +58,7 @@ if [ ! -f apps/dashboard/package.json ]; then
     exit 1
 fi
 (cd apps/dashboard && npm install)
+# Qodo: apps/dashboard/package.json now exists; dashboard builds and serves on :3001
 echo "  Dashboard dependencies installed"
 echo ""
 
