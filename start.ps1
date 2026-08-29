@@ -79,7 +79,8 @@ if ($tfInstalled -match "yes") {
 
 # Step 7: Start TrueForge
 Write-Host "[7/7] Starting TrueForge in WSL..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "wsl -- bash -c 'cd `"/mnt/c/Users/adity/Documents/Mission Control/scripts/wsl`" && bash start-trueforge.sh'"
+$wslPath = (wsl -e wslpath -a -u "$PSScriptRoot/scripts/wsl").Trim()
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "wsl -- bash -c 'cd `"$wslPath`" && bash start-trueforge.sh'"
 Write-Host "  TrueForge starting on http://localhost:8790" -ForegroundColor Green
 
 # Done
