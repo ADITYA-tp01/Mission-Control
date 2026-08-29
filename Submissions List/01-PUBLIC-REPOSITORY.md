@@ -304,7 +304,7 @@ chmod +x scripts/setup.sh
 # 5. Start TrueForge (in a separate terminal / WSL)
 npx @truefoundry/trueforge
 
-# 6. In TrueForge UI (http://localhost:3000):
+# 6. In TrueForge UI (http://localhost:8790):
 #    a. Connect your model provider (OpenAI key from .env)
 #    b. Add an MCP server -> URL: http://localhost:8000/mcp
 #    c. Create an agent named 'missioncontrol'
@@ -368,7 +368,7 @@ pkill -f trueforge
 
 | Port | Service |
 |---|---|
-| 3000 | TrueForge UI |
+| 8790 | TrueForge UI |
 | 3001 | MissionControl Dashboard |
 | 4000 | LiteLLM proxy |
 | 5432 | PostgreSQL |

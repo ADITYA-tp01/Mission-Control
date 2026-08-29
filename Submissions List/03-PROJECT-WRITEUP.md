@@ -141,7 +141,7 @@ TrueForge is the agent harness that:
 - Runs the AI agent (GPT-4o-mini)
 - Manages MCP server connections
 - Handles human-in-the-loop approval
-- Provides the agent UI at `http://localhost:3000`
+- Provides the agent UI at `http://localhost:8790`
 
 **How we use it:**
 - Agent system prompt defines MissionControl's personality and rules
@@ -222,7 +222,7 @@ WSL launchers (`scripts/wsl/start-trueforge.sh`, `scripts/wsl/start-litellm.sh`)
 | Agent Runtime | Runs GPT-4o-mini with our system prompt and skill |
 | MCP Server Connection | Connects to our FastMCP server at `http://localhost:8000/mcp` |
 | Approval Mechanism | Requires human approval before `rollback_deploy` / `restart_service` |
-| Agent UI | Provides `http://localhost:3000` for agent interaction |
+| Agent UI | Provides `http://localhost:8790` for agent interaction |
 | Skill System | Loads `incident-response/SKILL.md` for specialized behavior |
 | System Prompt | Loads `agent/system-prompt.md` for personality and rules |
 

@@ -16,7 +16,7 @@ const TrueforgeUI = dynamic(() => import('@truefoundry/trueforge-ui').then((m) =
 export function AgentChat({ sessionId }: { sessionId?: string }) {
   const [error, setError] = useState<string | null>(null)
 
-  const baseUrl = process.env.NEXT_PUBLIC_TRUEFORGE_URL || 'http://localhost:3000'
+  const baseUrl = process.env.NEXT_PUBLIC_TRUEFORGE_URL || 'http://localhost:8790'
   const token = process.env.NEXT_PUBLIC_TRUEFORGE_TOKEN
 
   if (error) {

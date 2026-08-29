@@ -27,4 +27,4 @@ fi
 
 cd "$HOME"
 export HOST=0.0.0.0
-exec npx -y @truefoundry/trueforge --port 3000
+exec npx -y @truefoundry/trueforge

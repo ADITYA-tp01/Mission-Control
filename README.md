@@ -1,4 +1,4 @@
-﻿# MissionControl — Autonomous DevOps Incident Response Agent
+# MissionControl — Autonomous DevOps Incident Response Agent
 
 > **Hackathon submission** — WeMakeDevs "The Agent Harness" (Double-O track, TrueFoundry sponsor)
 
@@ -105,7 +105,7 @@ python scripts/trigger_incident.py api-gateway outage "gateway down"
 ## TrueForge Agent Setup
 
 1. Start TrueForge: `npx @truefoundry/trueforge` (in a separate terminal)
-2. Open `http://localhost:3000`
+2. Open `http://localhost:8790`
 3. **Add model provider** → paste your `OPENAI_API_KEY`
 4. **Add MCP server** → URL: `http://localhost:8000/mcp` (name: `demo-infra`)
 5. **Create agent** named `missioncontrol`:
@@ -139,8 +139,8 @@ python scripts/trigger_incident.py api-gateway outage "gateway down"
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OPENAI_API_KEY` | *required* | OpenAI API key for TrueForge |
-| `TRUEFORGE_URL` | `http://localhost:3000` | TrueForge UI URL |
-| `NEXT_PUBLIC_TRUEFORGE_URL` | `http://localhost:3000` | Browser-side TrueForge URL |
+| `TRUEFORGE_URL` | `http://localhost:8790` | TrueForge UI URL |
+| `NEXT_PUBLIC_TRUEFORGE_URL` | `http://localhost:8790` | Browser-side TrueForge URL |
 | `MCP_ENDPOINT` | `http://localhost:8000/mcp` | MCP streamable-HTTP endpoint |
 | `DEMO_INFRA_API_URL` | `http://localhost:8001` | REST sidecar URL |
 | `DEMO_INFRA_TOKEN` | `local-demo-token` | Shared token for mutating POSTs |
@@ -165,7 +165,7 @@ npm run build
 
 ## Security Notes
 
-- **CORS**: Restricted to `localhost:3000/3001` only
+- **CORS**: Restricted to `localhost:8790/3001` only
 - **Mutation auth**: All state-mutating POSTs require `Authorization: Bearer <DEMO_INFRA_TOKEN>`
 - **Default token**: `local-demo-token` (override via `DEMO_INFRA_TOKEN` in `.env`)
 - **MCP approval**: Agent tools `rollback_deploy` / `restart_service` require TrueForge human approval

@@ -40,9 +40,9 @@ ALERT_ACK_RE = re.compile(r"^/api/alerts/([^/]+)/ack$")
 # Browser traffic reaches this API only via the Next.js server-side proxy,
 # so CORS is a convenience for local debugging, not an authorization layer.
 CORS_ALLOWED_ORIGINS = {
-    "http://localhost:3000",
+    "http://localhost:8790",
     "http://localhost:3001",
-    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8790",
     "http://127.0.0.1:3001",
 }
 

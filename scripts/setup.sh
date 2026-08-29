@@ -10,7 +10,7 @@ echo ""
 
 echo "[1/6] Checking prerequisites..."
 command -v docker >/dev/null 2>&1 || { echo "Error: docker is required. Install Docker Desktop."; exit 1; }
-if command -v node >/dev/null 2>&1; then echo "  - Node: $(node --version)"; else echo "Error: node 18+ is required."; exit 1; fi
+if command -v node >/dev/null 2>&1; then echo "  - Node: $(node --version)"; else echo "Error: node 22+ is required."; exit 1; fi
 PYTHON_BIN="$(command -v python3 || command -v python)"
 [ -n "$PYTHON_BIN" ] || { echo "Error: python 3.10+ is required."; exit 1; }
 echo "  - Python: $($PYTHON_BIN --version)"
@@ -64,7 +64,7 @@ echo ""
 
 echo "[5/6] Building and starting the dashboard (background)..."
 (cd apps/dashboard && npm run build)
-(cd apps/dashboard && nohup npm run dev >/tmp/missioncontrol-dashboard.log 2>&1 &)
+(cd apps/dashboard && NEXT_PUBLIC_TRUEFORGE_URL="http://localhost:8790" TRUEFORGE_URL="http://localhost:8790" nohup npm run dev >/tmp/missioncontrol-dashboard.log 2>&1 &)
 sleep 5
 echo "  Dashboard built and starting on http://localhost:3001 (log: /tmp/missioncontrol-dashboard.log)"
 echo ""
@@ -72,9 +72,9 @@ echo ""
 echo "[6/6] Starting TrueForge agent runtime..."
 if command -v npx >/dev/null 2>&1; then
     echo "  Starting TrueForge in background..."
-    nohup npx @truefoundry/trueforge >/tmp/missioncontrol-trueforge.log 2>&1 &
+    nohup npx -y @truefoundry/trueforge >/tmp/missioncontrol-trueforge.log 2>&1 &
     sleep 3
-    echo "  TrueForge starting on http://localhost:3000 (log: /tmp/missioncontrol-trueforge.log)"
+    echo "  TrueForge starting on http://localhost:8790 (log: /tmp/missioncontrol-trueforge.log)"
 else
     echo "  npx not found - run 'npx @truefoundry/trueforge' manually"
 fi
@@ -84,7 +84,7 @@ echo "========================================="
 echo "  MissionControl is ready!"
 echo "========================================="
 echo ""
-echo "  TrueForge UI:   http://localhost:3000   (after 'npx @truefoundry/trueforge')"
+echo "  TrueForge UI:   http://localhost:8790   (after 'npx @truefoundry/trueforge')"
 echo "  Dashboard:      http://localhost:3001"
 echo "  MCP endpoint:   http://localhost:8000/mcp"
 echo "  REST API:       http://localhost:8001"
