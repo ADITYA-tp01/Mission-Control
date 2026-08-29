@@ -394,6 +394,14 @@ class InfraState:
         return restored
 
     def rollback_deploy(self, service: str, deploy_id: str) -> Dict:
+        """
+        Roll back a service to a previous deployment.
+        
+        NOTE: This operation is irreversible and requires human approval.
+        The REST sidecar (http_api.py) enforces this via a Bearer token
+        (DEMO_INFRA_TOKEN) on the /api/remediate endpoint. The MCP tool
+        counterpart requires TrueForge approval gates.
+        """
         with self.lock:
             svc = self.services.get(service)
             if not svc:
@@ -441,6 +449,14 @@ class InfraState:
         return {"status": "success", "message": f"Rolled back {service} to {rolled_back_to}", "version": rolled_back_to}
 
     def restart_service(self, service: str) -> Dict:
+        """
+        Restart a service. IRREVERSIBLE.
+        
+        THIS TOOL REQUIRES HUMAN APPROVAL. The REST sidecar (http_api.py)
+        enforces this via a Bearer token (DEMO_INFRA_TOKEN) on the
+        /api/remediate endpoint. The MCP tool counterpart requires
+        TrueForge approval gates.
+        """
         with self.lock:
             svc = self.services.get(service)
             if not svc:
