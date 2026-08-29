@@ -70,16 +70,14 @@ echo "  Dashboard built and starting on http://localhost:3001 (log: /tmp/mission
 echo ""
 
 echo "[6/6] Starting TrueForge agent runtime..."
-echo "  Run in a separate terminal:"
-echo ""
-echo "      npx @truefoundry/trueforge"
-echo ""
-echo "  Then in the TrueForge UI (http://localhost:3000):"
-echo "    a. Connect your model provider (OpenAI key from .env)"
-echo "    b. Add an MCP server -> URL: http://localhost:8000/mcp"
-echo "    c. Create an agent named 'missioncontrol' using agent/system-prompt.md"
-echo "       as the system prompt and agent/skills/incident-response/SKILL.md"
-echo "       as a skill. Require approval for rollback_deploy / restart_service."
+if command -v npx >/dev/null 2>&1; then
+    echo "  Starting TrueForge in background..."
+    nohup npx @truefoundry/trueforge >/tmp/missioncontrol-trueforge.log 2>&1 &
+    sleep 3
+    echo "  TrueForge starting on http://localhost:3000 (log: /tmp/missioncontrol-trueforge.log)"
+else
+    echo "  npx not found - run 'npx @truefoundry/trueforge' manually"
+fi
 echo ""
 
 echo "========================================="
