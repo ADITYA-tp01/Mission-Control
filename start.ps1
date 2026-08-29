@@ -69,7 +69,7 @@ if ($wslLinuxNode -match "missing") {
     Write-Host "  WSL Node.js already installed" -ForegroundColor Green
 }
 
-# Step 6: Setup WSL - install TrueForge
+# Step 6: Install TrueForge in WSL
 Write-Host "[6/6] Setting up TrueForge in WSL..." -ForegroundColor Yellow
 $wslTf = wsl -d Ubuntu -- bash -c 'command -v trueforge 2>/dev/null || echo missing'
 if ($wslTf -match "missing") {
@@ -80,33 +80,24 @@ if ($wslTf -match "missing") {
     Write-Host "  TrueForge already installed in WSL" -ForegroundColor Green
 }
 
-# Launch TrueForge in WSL
-Write-Host "  Launching TrueForge in WSL..." -ForegroundColor Yellow
-$wslScript = @'
-#!/bin/bash
-export PATH=/usr/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/sbin:$PATH
-cd ~
-npx @truefoundry/trueforge
-'@
-$scriptPath = "$env:TEMP\start-tf.sh"
-[System.IO.File]::WriteAllText($scriptPath, $wslScript, [System.Text.UTF8Encoding]::new($false))
-Start-Process wsl -ArgumentList "-d Ubuntu -- bash -c 'bash /mnt/c/$($env:TEMP -replace '\\','/')/start-tf.sh'"
-Start-Sleep -Seconds 2
-Write-Host "  TrueForge terminal opened" -ForegroundColor Green
-
 # Done
 Write-Host ""
 Write-Host "=========================================" -ForegroundColor Green
 Write-Host "  Everything is running!" -ForegroundColor Green
 Write-Host "=========================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "  Next steps in the WSL TrueForge terminal:" -ForegroundColor Cyan
-Write-Host "    1. Open http://localhost:3000" -ForegroundColor White
-Write-Host "    2. Add your OpenAI API key" -ForegroundColor White
-Write-Host "    3. Add MCP server -> http://localhost:8000/mcp" -ForegroundColor White
-Write-Host "    4. Create agent 'missioncontrol'" -ForegroundColor White
-Write-Host "    5. Use agent/system-prompt.md as system prompt" -ForegroundColor White
-Write-Host "    6. Enable approval for rollback_deploy, restart_service" -ForegroundColor White
+Write-Host "  Now start TrueForge manually:" -ForegroundColor Cyan
+Write-Host "    1. Open a NEW terminal" -ForegroundColor White
+Write-Host "    2. Type: wsl" -ForegroundColor White
+Write-Host "    3. Type: cd ~" -ForegroundColor White
+Write-Host "    4. Type: npx @truefoundry/trueforge" -ForegroundColor White
+Write-Host ""
+Write-Host "  Then in TrueForge UI (http://localhost:3000):" -ForegroundColor Cyan
+Write-Host "    1. Add your OpenAI API key" -ForegroundColor White
+Write-Host "    2. Add MCP server -> http://localhost:8000/mcp" -ForegroundColor White
+Write-Host "    3. Create agent 'missioncontrol'" -ForegroundColor White
+Write-Host "    4. Use agent/system-prompt.md as system prompt" -ForegroundColor White
+Write-Host "    5. Enable approval for rollback_deploy, restart_service" -ForegroundColor White
 Write-Host ""
 Write-Host "  Dashboard:    http://localhost:3001" -ForegroundColor Cyan
 Write-Host "  MCP Server:   http://localhost:8001" -ForegroundColor Cyan
