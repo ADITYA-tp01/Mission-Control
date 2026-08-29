@@ -63,30 +63,24 @@ MissionControl is an autonomous DevOps agent that monitors simulated production 
 git clone https://github.com/ADITYA-tp01/Mission-Control
 cd Mission-Control
 
-# Windows PowerShell
-powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
-powershell -ExecutionPolicy Bypass -File scripts\start-all.ps1
+# Windows (one click)
+.\start.ps1
 
 # Linux / macOS
 chmod +x scripts/setup.sh
 ./scripts/setup.sh
-./scripts/start-all.ps1   # (run via pwsh or WSL)
 ```
 
-**What `setup` does:**
-1. Checks prerequisites (Docker, Node 18+, Python 3.10+)
-2. Creates `.env` from `.env.example` — **add your `OPENAI_API_KEY`**
-3. Starts Docker Compose (Postgres + Redis + Demo Infra MCP sidecar)
-4. Installs dashboard deps, builds, and starts it on `http://localhost:3001`
-5. Prints TrueForge onboarding steps
+**What `start.ps1` does:**
+1. Checks Docker is running (tells you to start Docker Desktop if not)
+2. Builds and starts all containers (Postgres, Redis, MCP server)
+3. Waits for MCP server health
+4. Installs dashboard deps and starts it on `http://localhost:3001`
 
-**What `start-all` does (run after every reboot):**
-1. Detects WSL IP / Windows gateway IP
-2. Starts/verifies LiteLLM bridge (WSL :4000) and TrueForge (WSL :3000)
-3. Starts Demo Infra MCP via Docker Compose (ports 8000/8001)
-4. Re-registers MCP endpoint inside TrueForge via REST
-5. Rewrites dashboard `.env.local` with current TrueForge URL
-6. Starts dashboard (Windows :3001) and prints all URLs
+**To stop everything:**
+```powershell
+.\stop.ps1
+```
 
 ---
 
@@ -183,29 +177,31 @@ npm run build
 
 ```
 MissionControl/
-├── .github/workflows/qodo.yml      # Qodo PR Agent review
+├── start.ps1                         # One-click start (Windows)
+├── stop.ps1                          # One-click stop (Windows)
+├── .github/workflows/qodo.yml        # Qodo PR Agent review
 ├── scripts/
-│   ├── setup.ps1 / setup.sh        # One-time setup
-│   ├── start-all.ps1               # Reboot-proof startup
-│   ├── stop-all.ps1                # Clean shutdown
-│   ├── trigger_incident.py         # CLI chaos injector
-│   └── wsl/                        # WSL launcher scripts
+│   ├── setup.ps1 / setup.sh          # Detailed setup
+│   ├── start-all.ps1                 # Advanced startup (WSL/TrueForge)
+│   ├── stop-all.ps1                  # Clean shutdown
+│   ├── trigger_incident.py           # CLI chaos injector
+│   └── wsl/                          # WSL launcher scripts
 ├── mcp-servers/demo-infra/
-│   ├── server.py                   # FastMCP server (port 8000)
-│   ├── http_api.py                 # REST sidecar (port 8001)
-│   ├── state.py                    # Thread-safe infra state
-│   ├── test_state.py               # 16 regression tests
+│   ├── server.py                     # FastMCP server (port 8000)
+│   ├── http_api.py                   # REST sidecar (port 8001)
+│   ├── state.py                      # Thread-safe infra state
+│   ├── test_state.py                 # 16 regression tests
 │   ├── Dockerfile
 │   └── requirements.txt
-├── apps/dashboard/                 # Next.js 14 App Router
-│   ├── app/                        # Pages + API routes
-│   ├── components/                 # React components
-│   └── lib/                        # Client libs
+├── apps/dashboard/                   # Next.js 14 App Router
+│   ├── app/                          # Pages + API routes
+│   ├── components/                   # React components
+│   └── lib/                          # Client libs
 ├── agent/
-│   ├── system-prompt.md            # Agent instructions
-│   └── skills/incident-response/   # Skill definition
-├── docker-compose.yml              # Postgres + Redis + MCP sidecar
-└── .env.example                    # Template
+│   ├── system-prompt.md              # Agent instructions
+│   └── skills/incident-response/     # Skill definition
+├── docker-compose.yml                # Postgres + Redis + MCP sidecar
+└── .env.example                      # Template
 ```
 
 ---
