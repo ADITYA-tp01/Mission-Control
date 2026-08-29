@@ -203,10 +203,12 @@ class InfraState:
 
     def get_recent_deploys(self, limit: int = 5) -> List[Deploy]:
         with self.lock:
+            limit = max(1, limit)
             return self.deploys[-limit:]
 
     def get_service_logs(self, service: str, limit: int = 50, level: Optional[str] = None) -> List[LogEntry]:
         with self.lock:
+            limit = max(1, limit)
             filtered = [log for log in self.logs if log.service == service]
             if level:
                 filtered = [log for log in filtered if log.level == level.upper()]

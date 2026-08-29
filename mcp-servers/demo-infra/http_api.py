@@ -132,6 +132,9 @@ class DemoInfraAPIHandler(BaseHTTPRequestHandler):
         match = SERVICE_RE.match(path)
         if match:
             service = match.group(1)
+            if service not in state.services:
+                self._send(404, {"error": f"Unknown service: {service}"})
+                return
             metrics = state.get_error_metrics(service)
             history = state.get_metrics_history(
                 service, limit=_int_param(query, "limit", 60, 500)
