@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 async function triggerAgent(origin: string, service: string, chaosType: string): Promise<void> {
   if (process.env.AUTO_TRIGGER_AGENT === 'false') return
   try {
-    await fetch(`${origin}/api/webhook`, {
+    await fetch(`http://127.0.0.1:3001/api/webhook`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
