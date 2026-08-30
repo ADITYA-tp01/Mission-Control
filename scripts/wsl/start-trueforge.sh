@@ -16,15 +16,11 @@ fi
 
 export OPENAI_BASE_URL="${OPENAI_BASE_URL:-https://integrate.api.nvidia.com/v1}"
 
-if [ -z "${OPENAI_API_KEY:-}" ] || [ "$OPENAI_API_KEY" = "your-openai-api-key-here" ]; then
-    echo "start-trueforge.sh: OPENAI_API_KEY is not set. Add it to $REPO_DIR/.env" >&2
-    exit 1
-fi
-
 if [ -d "$HOME/.local/node/bin" ]; then
     export PATH="$HOME/.local/node/bin:$PATH"
 fi
 
 cd "$HOME"
 export HOST=0.0.0.0
+export PORT=8790
 exec npx -y @truefoundry/trueforge
