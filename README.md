@@ -106,7 +106,9 @@ python scripts/trigger_incident.py api-gateway outage "gateway down"
 
 1. Start TrueForge: `npx @truefoundry/trueforge` (in a separate terminal)
 2. Open `http://localhost:8790`
-3. **Add model provider** → paste your `OPENAI_API_KEY`
+3. **Configure Model Provider**: 
+   - **For OpenAI**: Go to Settings, select OpenAI, and paste your `OPENAI_API_KEY`. Leave Base URL as default.
+   - **For Groq / Open-source models**: First, run `python groq_proxy.py` in a separate terminal. Then in TrueForge Settings, select your provider, set the **Base URL** to `http://localhost:8080/v1` (or `http://172.19.48.1:8080/v1` if using WSL), enter your Groq API key, and specify the model ID.
 4. **Add MCP server** → URL: `http://localhost:8000/mcp` (name: `demo-infra`)
 5. **Create agent** named `missioncontrol`:
    - **System prompt**: `agent/system-prompt.md`
